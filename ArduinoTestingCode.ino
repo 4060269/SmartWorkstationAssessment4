@@ -17,15 +17,24 @@
 // DC Motor & Motor Module - L298N
 #include <L298N.h>
 
+// Pin definition
+const unsigned int IN1 = 11;
+const unsigned int IN2 = 12;
+const unsigned int EN = 9;
+
 // Create one motor instance
-L298N motor(11, 12);
+L298N motor(EN, IN1, IN2);
 
 void setup() {
   // DC Motor & Motor Module - L298N
-  motor.setSpeed(70);
-  motor.forward();
+  motor.setSpeed(255);
 }
 
-
 void loop() {
+  motor.forward();
+  delay(10000);
+  motor.stop();
+  delay(1000);
+  motor.backward();
+  delay(10000);
 }
