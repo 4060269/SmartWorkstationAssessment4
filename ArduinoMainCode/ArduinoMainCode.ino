@@ -15,6 +15,7 @@ TinyGPSPlus gps; // The TinyGPS++ object
 SoftwareSerial ss(RXPin, TXPin);// The serial connection to the GPS device
 
 //Lights Global
+bool eventValue = false;
 bool orangeeventValue = false; //global variable to reference for outputs
 
 //Piezo Global
@@ -33,13 +34,10 @@ const unsigned int IN2 = 12;
 const unsigned int EN = 9;
 L298N motor(EN, IN1, IN2); // Create one motor instance
 
-//Sonar Global
-int gsonarValue = 0; //global variable to reference for outputs
-long duration; // variable for the duration of sound wave travel
-int distance; // variable for the distance measurement
 
 //Line Global
 int glineState = 0; //global variable to reference for outputs
+bool gpsState = false;
 
 //Pot Global
 int gpotValue = 0; //global variable to reference for outputs
@@ -88,14 +86,13 @@ void setup() {
   //DC Setup
   motor.setSpeed(255);
 
-  //Sonar Setup
-  pinMode(4, OUTPUT); // Sets the trigPin as an OUTPUT
-  pinMode(5, INPUT); // Sets the echoPin as an INPUT
+
 
   //Line Setup
   pinMode(7, INPUT);
 
   //Pot Setup
+  pinMode(A0, OUTPUT);
 
   //Button1Setup
   pinMode(8, OUTPUT);
@@ -130,6 +127,8 @@ void logEvent(String dataToLog) {
   */
   // Get the updated/current time
   DateTime rightNow = rtc.now();
+
+  eventValue == true;
 
   // Open the log file
   File logFile = SD.open("events.csv", FILE_WRITE);
@@ -170,6 +169,7 @@ void logEvent(String dataToLog) {
   Serial.print(rightNow.second(), DEC);
   Serial.print(",");
   Serial.println(dataToLog);
+  eventValue == true;
 }
 
 //GPS Loop
@@ -182,73 +182,136 @@ void GPSLoop() {
 }
 
 void locationBarrier() {
+  eventValue == true;
   while (ss.available() > 0)
     if (gps.encode(ss.read()))
       getGPSInfo();
+  eventValue == false;
 }
 
 void getGPSInfo() {
+  eventValue == true;
   Serial.print(F("Location: "));
   if (gps.location.isValid()) {
     Serial.print(gps.location.lat(), 6);
     Serial.print(F(","));
     Serial.print(gps.location.lng(), 6);
+    gbootSuccess == true; // since the program has completed SD card and GPS functions, the 'boot' has successfully completeted
+    gpsconState = true;
+    eventValue == true;
   }
   else {
     Serial.println(F("INVALID"));
+    gbootSuccess == false;
   }
+  eventValue == false;
+}
+
+//Button1Loop
+void button1Loop() {
+  eventValue == true;
+  int valueCrash = digitalRead(inPin); // read the state of the crash sensor
+  if (valueCrash == HIGH) {
+    gbutton1State == true;
+  } else {
+    gbutton1State == false;
+  }
+  eventValue == false;
+}
+
+//Button2Loop
+void button2Loop() {
+  eventValue == true;
+
+  int buttonState = digitalRead(9);   // read the state of the pushbutton value:
+
+  if (buttonState == HIGH) {   // check if the pushbutton is pressed. If it is, the buttonState is HIGH:
+    gbutton2State == true;
+  } else {
+    gbutton2State == false;
+  }
+  eventValue == false;
+}
+
+//Button3Loop
+void button3Loop() {
+  eventValue == true;
+
+  int buttonState = digitalRead(10);   // read the state of the pushbutton value:
+
+  if (buttonState == HIGH) {   // check if the pushbutton is pressed. If it is, the buttonState is HIGH:
+    gbutton3State == true;
+  } else {
+    gbutton3State == false;
+  }
+  eventValue == false;
 }
 
 //Lights Loop
 void lightsLoop() {
-  digitalWrite(A1, HIGH);
-  digitalWrite(A2, HIGH);
-  digitalWrite(A3, HIGH);
-  delay(1000);
-  digitalWrite(A1, LOW);
-  digitalWrite(A2, LOW);
-  digitalWrite(A3, LOW);
-  delay(1000);
+  if (eventValue == false) {
+    eventValue == true;
+    digitalWrite(A1, HIGH);
+    delay(10000);
+    digitalWrite(A1, LOW);
+  } else if (orangeeventValue == true) {
+    digitalWrite(A2, HIGH);
+    delay(10000);
+    digitalWrite(A2, LOW);
+  } else if (eventValue == true) {
+    digitalWrite(A3, HIGH);
+    delay(10000);
+    digitalWrite(A3, LOW);
+  }
 }
+
 
 //Piezo Loop
 void piezoLoop() {
-//  if (
+  eventValue == true;
+  if (gbootSuccess == true) {
     tone(48, 1000, 500);
+  } else {
+    tone(48, 100, 500);
+  }
+  eventValue == false;
 }
 
 //Servo Loop
 void servoLoop() {
-  //    if
-
-  servo.write(0);
-  delay(500);
-  delay(10000);
-  servo.write(90);
-  delay(500);
-  delay(10000);
-  servo.write(180);
-  delay(500);
-  delay(10000);
-  servo.write(90);
-  delay(500);
-  delay(10000);
-  servo.write(0);
-  delay(500);
-  delay(10000);
+  if (gbutton3State == true) {
+    eventValue == true;
+    servo.write(0);
+    delay(500);
+    servo.write(90);
+    delay(500);
+    servo.write(180);
+    delay(500);
+  } else {
+    servo.write(90);
+    delay(500);
+    delay(10000);
+    servo.write(0);
+    delay(500);
+    delay(10000);
+  }
+  eventValue == false;
 }
 //DC Loop
 void DCLoop() {
+  eventValue == true;
   motor.forward();
   delay(10000);
   motor.stop();
   delay(1000);
   motor.backward();
   delay(10000);
+  eventValue == false;
 }
 
 //Sonar Loop
 void sonarLoop() {
+  eventValue == true;
 
   // Clears the trigPin condition
   digitalWrite(4, LOW);
@@ -267,64 +330,23 @@ void sonarLoop() {
 
   // Displays the distance on the Serial Monitor
   Serial.print("Distance: ");
-  delay(300);
+  delay(3900);
   Serial.print(distance);
-  delay(300);
+  delay(3900);
   Serial.println(" cm");
+  eventValue == false;
 }
 
 //Line Loop
 void lineLoop() {
-  bool value = digitalRead(7);
-  if (value == 0) {
-    Serial.println("Yay");
-  }
-}
+  eventValue == true;
+
 
 //Pot Loop
 void potLoop() {
+  eventValue == true;
   int sensorValue = analogRead(A0); //read the input on analog pin 0
-  Serial.println(sensorValue); //print out the value you read
+  sensorValue = gpotValue;
   delay(300); //delay in between reads for stability
-}
-
-//Button1Loop
-void button1Loop() {
-  int valueCrash = digitalRead(inPin); // read the state of the crash sensor
-  if (valueCrash == 0) {
-    // Turn on Red LED
-    digitalWrite(A1, HIGH);
-  } else {
-    digitalWrite(A1, LOW);
-  }
-}
-
-//Button2Loop
-void button2Loop() {
-  // read the state of the pushbutton value:
-  int buttonState = digitalRead(9);
-
-  // check if the pushbutton is pressed. If it is, the buttonState is HIGH:
-  if (buttonState == 0) {
-    // turn orange LED on:
-    digitalWrite(A1, HIGH);
-  } else {
-    // turn LED off:
-    digitalWrite(A1, HIGH);
-  }
-}
-
-//Button3Loop
-void button3Loop() {
-  // read the state of the pushbutton value:
-  int buttonState = digitalRead(10);
-
-  // check if the pushbutton is pressed. If it is, the buttonState is HIGH:
-  if (buttonState == 0) {
-    // turn green LED on:
-    digitalWrite(A2, HIGH);
-  } else {
-    // turn LED off:
-    digitalWrite(A2, LOW);
-  }
+  eventValue == false;
 }
