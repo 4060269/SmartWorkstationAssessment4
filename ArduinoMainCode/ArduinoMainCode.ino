@@ -6,6 +6,7 @@ RTC_Millis rtc;     // Software Real Time Clock (RTC)
 DateTime rightNow;  // used to store the current time.
 
 //GPS Global
+bool gGPSEnable = false;
 bool gpsconState = false; //global variable to reference for outputs
 static const int RXPin = 10, TXPin = 11;
 static const uint32_t GPSBaud = 9600;
@@ -107,12 +108,92 @@ void setup() {
   pinMode(10, INPUT);
 }
 
+
+// SD Card Loop
+void logEvent(String dataToLog) {
+  /*
+     Log entries to a file on an SD card.
+  */
+  // Get the updated/current time
+  DateTime rightNow = rtc.now();
+
+  eventValue == true;
+
+  // Open the log file
+  File logFile = SD.open("events.csv", FILE_WRITE);
+  if (!logFile) {
+    Serial.print("Couldn't create log file");
+    abort();
+  }
+
+  // Log the event with the date, time and data
+  logFile.print(rightNow.year(), DEC);
+  logFile.print(",");
+  logFile.print(rightNow.month(), DEC);
+  logFile.print(",");
+  logFile.print(rightNow.day(), DEC);
+  logFile.print(",");
+  logFile.print(rightNow.hour(), DEC);
+  logFile.print(",");
+  logFile.print(rightNow.minute(), DEC);
+  logFile.print(",");
+  logFile.print(rightNow.second(), DEC);
+  logFile.print(",");
+  logFile.print(dataToLog);
+
+  // End the line with a return character.
+  logFile.println();
+  logFile.close();
+  Serial.print("Event Logged: ");
+  Serial.print(rightNow.year(), DEC);
+  Serial.print(",");
+  Serial.print(rightNow.month(), DEC);
+  Serial.print(",");
+  Serial.print(rightNow.day(), DEC);
+  Serial.print(",");
+  Serial.print(rightNow.hour(), DEC);
+  Serial.print(",");
+  Serial.print(rightNow.minute(), DEC);
+  Serial.print(",");
+  Serial.print(rightNow.second(), DEC);
+  Serial.print(",");
+  Serial.println(dataToLog);
+  eventValue == true;
+}
+
+
+//GPS Loop
+// Gets the GPS coords and tests whether it's in "bounds" - @params: none - @return: void //
+void locationBarrier() {
+  while (ss.available() > 0)
+    if (gps.encode(ss.read()))
+      getGPSInfo();
+}
+
+void getGPSInfo() {
+  eventValue == true;
+  Serial.print(F("Location: "));
+  if (gps.location.isValid()) {
+    Serial.print(gps.location.lat(), 6);
+    Serial.print(F(","));
+    Serial.print(gps.location.lng(), 6);
+    gbootSuccess == true; // since the program has completed SD card and GPS functions, the 'boot' has successfully completeted
+    gpsconState = true;
+  }
+  else {
+    Serial.println(F("INVALID"));
+    gbootSuccess == false;
+  }
+}
+
+
 void loop() {
   //Button1Loop
   int valueCrash = digitalRead(inPin); // read the state of the crash sensor
   if (valueCrash == HIGH) {
     gbutton1State == true;
     deactivateCircuit == true;
+    logEvent("Button 1 Pressed");
   } else {
     gbutton1State == false;
     deactivateCircuit == false;
@@ -124,6 +205,7 @@ void loop() {
   if (button2State == HIGH) {   // check if the pushbutton is pressed. If it is, the buttonState is HIGH:
     gbutton2State == true;
     deactivateDc == true;
+    logEvent("Button 2 Pressed");
   } else {
     gbutton2State == false;
     deactivateDc == false;
@@ -135,6 +217,7 @@ void loop() {
   if (button3State == HIGH) {   // check if the pushbutton is pressed. If it is, the buttonState is HIGH:
     gbutton3State == true;
     deactivateServo == true;
+    logEvent("Button 3 Pressed");
   } else {
     gbutton3State == false;
     deactivateServo == false;
@@ -147,21 +230,26 @@ void loop() {
     delay(5000);
     digitalWrite(A3, LOW);
     delay(6000);
+    logEvent("Green Light Triggered");
   } else if (orangeeventValue == true) {
     digitalWrite(A2, HIGH);
     delay(5000);
     digitalWrite(A2, LOW);
+    logEvent("Orange Light Triggered");
   } else if (eventValue == false) {
     digitalWrite(A1, HIGH);
     delay(5000);
     digitalWrite(A1, LOW);
+    logEvent("Red Light Triggered");
   }
 
 
   //Piezo Loop
   if (gbootSuccess == true) {
     tone(48, 1000, 500);
+    logEvent("Successful Boot");
   } else if (gbootSuccess == false) {
+    logEvent("Unsuccessful Boot");
     tone(24, 500, 250);
   }
 
@@ -175,6 +263,7 @@ void loop() {
     delay(500);
     servo.write(180);
     delay(500);
+    logEvent("Servo Enabled");
   } else if (gbutton3State == false) {
     eventValue == false;
   }
@@ -185,6 +274,7 @@ void loop() {
     motor.forward();
     delay(10000);
     motor.stop();
+    logEvent("DC Motor Enabled");
   } else if (gbutton2State == false) {
     eventValue == false;
   }
@@ -212,97 +302,22 @@ void loop() {
   Serial.print(distance);
   delay(3900);
   Serial.println(" cm");
+  logEvent("Sonar Enabled");
 
 
 
   //Line Loop
   bool value = digitalRead(7);
   if (value == 0) {
-    Serial.println("Yay");
-
-
-    //Pot Loop
-    int sensorValue = analogRead(A0); //read the input on analog pin 0
-    sensorValue = gpotValue;
-    delay(300); //delay in between reads for stability
+    gGPSEnable = true;
+    logEvent("Line Sensor Enabled");
+  } else {
+    eventValue = false;
   }
+
+  //Pot Loop
+  int sensorValue = analogRead(A0); //read the input on analog pin 0
+  sensorValue = gpotValue;
+  delay(300); //delay in between reads for stability
+  logEvent("Potentiometer Enabled");
 }
-
-
-
-  // SD Card Loop
-  void logEvent(String dataToLog) {
-    /*
-       Log entries to a file on an SD card.
-    */
-    // Get the updated/current time
-    DateTime rightNow = rtc.now();
-
-    eventValue == true;
-
-    // Open the log file
-    File logFile = SD.open("events.csv", FILE_WRITE);
-    if (!logFile) {
-      Serial.print("Couldn't create log file");
-      abort();
-    }
-
-    // Log the event with the date, time and data
-    logFile.print(rightNow.year(), DEC);
-    logFile.print(",");
-    logFile.print(rightNow.month(), DEC);
-    logFile.print(",");
-    logFile.print(rightNow.day(), DEC);
-    logFile.print(",");
-    logFile.print(rightNow.hour(), DEC);
-    logFile.print(",");
-    logFile.print(rightNow.minute(), DEC);
-    logFile.print(",");
-    logFile.print(rightNow.second(), DEC);
-    logFile.print(",");
-    logFile.print(dataToLog);
-
-    // End the line with a return character.
-    logFile.println();
-    logFile.close();
-    Serial.print("Event Logged: ");
-    Serial.print(rightNow.year(), DEC);
-    Serial.print(",");
-    Serial.print(rightNow.month(), DEC);
-    Serial.print(",");
-    Serial.print(rightNow.day(), DEC);
-    Serial.print(",");
-    Serial.print(rightNow.hour(), DEC);
-    Serial.print(",");
-    Serial.print(rightNow.minute(), DEC);
-    Serial.print(",");
-    Serial.print(rightNow.second(), DEC);
-    Serial.print(",");
-    Serial.println(dataToLog);
-    eventValue == true;
-  }
-
-  //GPS Loop
-  // Gets the GPS coords and tests whether it's in "bounds" - @params: none - @return: void //
-
-  void locationBarrier() {
-    while (ss.available() > 0)
-      if (gps.encode(ss.read()))
-        getGPSInfo();
-  }
-  
-  void getGPSInfo() {
-    eventValue == true;
-    Serial.print(F("Location: "));
-    if (gps.location.isValid()) {
-      Serial.print(gps.location.lat(), 6);
-      Serial.print(F(","));
-      Serial.print(gps.location.lng(), 6);
-      gbootSuccess == true; // since the program has completed SD card and GPS functions, the 'boot' has successfully completeted
-      gpsconState = true;
-    }
-    else {
-      Serial.println(F("INVALID"));
-      gbootSuccess == false;
-    }
-  }
